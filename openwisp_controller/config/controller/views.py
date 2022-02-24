@@ -130,7 +130,14 @@ class DeviceChecksumView(UpdateLastIpMixin, GetDeviceView):
     """
 
     def get(self, request, pk):
-        device = self.get_device()
+        deleted_devices = cache.get('deleted_devices', set())
+        uuid_hex = get_device_args_rewrite(self)
+        if uuid_hex in deleted_devices:
+            device = self.get_device(_refresh=True)
+            deleted_devices.remove(uuid_hex)
+            cache.set('deleted_devices', deleted_devices)
+        else:
+            device = self.get_device()
         bad_request = forbid_unallowed(request, 'GET', 'key', device.key)
         if bad_request:
             return bad_request

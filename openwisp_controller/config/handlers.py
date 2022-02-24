@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
 from openwisp_notifications.signals import notify
@@ -54,3 +55,11 @@ def devicegroup_delete_handler(instance, **kwargs):
     if isinstance(instance, Cert):
         kwargs['common_name'] = instance.common_name
     tasks.invalidate_devicegroup_cache_delete.delay(instance.id, model_name, **kwargs)
+
+
+def device_cache_invalidation_handler(instance, **kwargs):
+    deleted_devices = cache.get('deleted_devices')
+    if not deleted_devices:
+        deleted_devices = set()
+    deleted_devices.add(instance.pk.hex)
+    cache.set('deleted_devices', deleted_devices)
